@@ -242,7 +242,7 @@ class SyncTsetmc:
 
         return share_id_list, error
 
-    def collect_all_shares_info(self, tsetmc_ids, data_in_csv_file):
+    def collect_all_shares_info(self, tsetmc_ids, data_in_csv_file,number_of_read):
         self.unreade_page = list()
         self.running_page = list()
         self.readed_page = list()
@@ -282,7 +282,7 @@ class SyncTsetmc:
                 self.readed_page.append(share_id)
                 self.running_page.remove(share_id)
                 self.print_c("True collect_shares_info: {0} remind: {1} complete: {2}".format(share_id, len(self.unreade_page), i))
-                if i > 10:
+                if i >= number_of_read:
                     break
             else:
                 self.print_c("fail collect_shares_info: {0} remind: {1} complete: {2}".format(share_id, len(self.unreade_page), i))
