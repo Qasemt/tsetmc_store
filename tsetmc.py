@@ -167,7 +167,7 @@ class SyncTsetmc:
             result["sub_industry_code"] = int(td_list[25])  # 'کد زیر گروه صنعت'
             result["group_name"] = str(td_list[23])
             if "فرابورس" in str(td_list[17]):
-              result["exchange_code"] = 3  # farbourse
+              result["exchange_code"] = 4  # farbourse
             else:
                result["exchange_code"] = 2 # tehran
 
