@@ -153,19 +153,29 @@ class SyncTsetmc:
             offset = end_pos
 
         try:
-            result["en_symbol_12_digit_code"] = str(td_list[1])  # 'کد 12 رقمی نماد'
-            result["en_symbol_5_digit_code"] = str(td_list[3])  # 'کد 5 رقمی نماد'
-            result["company_en_name"] = str(td_list[5])  # 'نام لاتین شرکت'
+            # result["en_symbol_12_digit_code"] = str(td_list[1])  # 'کد 12 رقمی نماد'
+            # result["en_symbol_5_digit_code"] = str(td_list[3])  # 'کد 5 رقمی نماد'
+            # result["company_en_name"] = str(td_list[5])  # 'نام لاتین شرکت'
+            # result["company_4_digit_code"] = str(td_list[7])  # 'کد 4 رقمی شرکت'
+            # result["company_fa_name"] = str(td_list[9])  # 'نام شرکت'
+            # result["fa_symbol_name"] = str(td_list[11])  # 'نماد فارسی'
+            # result["fa_symbol_30_digit_code"] = str(td_list[13])  # 'نماد 30 رقمی فارسی'
+            # result["company_12_digit_code"] = str(td_list[15])  # 'کد 12 رقمی شرکت'
+            # result["market_flow"] = str(td_list[17])  # 'بازار'
+            # result["bord_code"] = int(td_list[19])  # 'کد تابلو'
+            # result["industry_code"] = int(td_list[21])  # 'کد گروه صنعت'
+            # result["sub_industry_code"] = int(td_list[25])  # 'کد زیر گروه صنعت'
+            result["nemad_12_code"] = str(td_list[1])  # 'کد 12 رقمی نماد'
+            result["nemad_5_code"] = str(td_list[3])  # 'کد 5 رقمی نماد'
+            result["title_en"] = str(td_list[5])  # 'نام لاتین شرکت'
             result["company_4_digit_code"] = str(td_list[7])  # 'کد 4 رقمی شرکت'
-            result["company_fa_name"] = str(td_list[9])  # 'نام شرکت'
+            result["title"] = str(td_list[9])  # 'نام شرکت'
             result["fa_symbol_name"] = str(td_list[11])  # 'نماد فارسی'
-            result["fa_symbol_30_digit_code"] = str(td_list[13])  # 'نماد 30 رقمی فارسی'
             result["company_12_digit_code"] = str(td_list[15])  # 'کد 12 رقمی شرکت'
-            result["market_flow"] = str(td_list[17])  # 'بازار'
             result["bord_code"] = int(td_list[19])  # 'کد تابلو'
             result["industry_code"] = int(td_list[21])  # 'کد گروه صنعت'
             result["sub_industry_code"] = int(td_list[25])  # 'کد زیر گروه صنعت'
-            result["group_name"] = str(td_list[23])
+            result["tsetmc_id"] = share_id
             if "فرابورس" in str(td_list[17]):
               result["exchange_code"] = 4  # farbourse
             else:
@@ -276,7 +286,7 @@ class SyncTsetmc:
                     self.running_page.remove(share_id)
                     continue
 
-                share_info["tsetmc_id"] = share_id
+                
                 # Convert object to a list
                 self.result_stock.append(share_info)
                 self.readed_page.append(share_id)
