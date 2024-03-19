@@ -18,28 +18,27 @@ class My_Response:
 
 class SyncTsetmc:
 
-    def __init__(
-        self,
-        id,
-        lock,
-        wait_list,
-        complete_list,
-        running_list,
-        fail_list,
-    ):
+    def __init__(self,id):
         self.id = id
-        self.wait_list = wait_list
-        self.complete_list = complete_list
-        self.running_list = running_list
-        self.fail_list = fail_list
-        self.lock = lock
         self.tsetmc_base_url = "http://old.tsetmc.com/Loader.aspx"
         self.request_obj = requests
         self.request_obj_timeout = (100, 180)
+
         self.result_stock = []
+        self.completed_page = list()
+        self.waiting_list= list()
+        self.readed_page=list()
+        self.unreade_page=list()
+        self.running_page=list()
+        self.fail_readed_page=list()
+        
+        self.lock = threading.Lock()
 
         self.bourse_index = 32097828799138957
         self.farabourse_index = 43685683301327984
+        self.sandogh = [17914401175772326] #صندوق اهرم
+        self.sandogh_sabet = [34718633636164421] #صندوق کمد
+        self.tala  = [58514988269776425]#عیار
         self.csv_file_path = "data.csv"
         # -------------------
         self.print_color = "green"
@@ -177,9 +176,14 @@ class SyncTsetmc:
             result["sub_industry_code"] = int(td_list[25])  # 'کد زیر گروه صنعت'
             result["tsetmc_id"] = share_id
             if "فرابورس" in str(td_list[17]):
-              result["exchange_code"] = 4  # farbourse
+                result["exchange_code"] = 4  # farbourse
+            elif "بورس" in str(td_list[17]):
+                result["exchange_code"] = 2  # tehran
             else:
-               result["exchange_code"] = 2 # tehran
+                result_list = [part.strip().replace(" ", "_") for part in td_list[11].split(" - ")]
+                if len(result_list)>0:
+                 result["fa_symbol_name"]=result_list[0]
+                 result["exchange_code"] = 8  # asset
 
             result["group_name"] = str(td_list[23])
             result["is_active"] = 1
@@ -252,16 +256,13 @@ class SyncTsetmc:
 
         return share_id_list, error
 
-    def collect_all_shares_info(self, tsetmc_ids, data_in_csv_file,number_of_read):
-        self.unreade_page = list()
-        self.running_page = list()
-        self.readed_page = list()
-        self.fail_readed_page = list()
+    def collect_all_shares_info(self, tsetmc_ids, data_in_csv_file, number_of_read):
+ 
         self.result_stock.extend(data_in_csv_file)
 
         bourse, bourse_error = self.get_shares_in_index(self.bourse_index, tsetmc_ids)
         farabourse, farabourse_error = self.get_shares_in_index(self.farabourse_index, tsetmc_ids)
-
+       
         if bourse_error is None:
             for share_id in bourse:
                 self.unreade_page.append(int(share_id))
@@ -269,6 +270,15 @@ class SyncTsetmc:
         if farabourse_error is None:
             for share_id in farabourse:
                 self.unreade_page.append(int(share_id))
+
+        for share_id in self.sandogh:
+            self.unreade_page.append(share_id)
+            
+        for share_id in self.tala:
+            self.unreade_page.append(share_id)
+            
+        for share_id in self.sandogh_sabet:
+            self.unreade_page.append(share_id)
 
         i = 0
         while len(self.unreade_page) != 0:
@@ -278,24 +288,33 @@ class SyncTsetmc:
 
             all_related_companies_id, all_related_companies_id_error = self.get_all_related_companies_id(share_id)
             if all_related_companies_id_error is None:
-                self.add_share_id_to_unread_page_list(all_related_companies_id)
-
+                self.add_share_id_to_unread_page_list(all_related_companies_id, tsetmc_ids)
+                self.unreade_page = self.unreade_page+self.waiting_list
+                self.waiting_list = []
+                
+                if str(share_id) in tsetmc_ids:
+                     self.running_page.remove(share_id)
+                     i-=1
+                     continue
+                 
                 share_info, error = self.get_share_info(share_id)
                 if error is not None:
                     self.fail_readed_page.append(share_id)
-                    self.running_page.remove(share_id)
+                    i-=1
                     continue
 
-                
                 # Convert object to a list
                 self.result_stock.append(share_info)
                 self.readed_page.append(share_id)
+                self.completed_page.append(share_id)
                 self.running_page.remove(share_id)
-                self.print_c("True collect_shares_info: {0} remind: {1} complete: {2}".format(share_id, len(self.unreade_page), i))
+                self.print_c("True collect_shares_info: {0} remind: {1} complete: {2}".format(
+                    share_id, len(self.unreade_page), i))
                 if i >= number_of_read:
                     break
             else:
-                self.print_c("fail collect_shares_info: {0} remind: {1} complete: {2}".format(share_id, len(self.unreade_page), i))
+                self.print_c("fail collect_shares_info: {0} remind: {1} complete: {2}".format(
+                    share_id, len(self.unreade_page), i))
                 self.fail_readed_page.append(share_id)
                 self.running_page.remove(share_id)
 
@@ -334,20 +353,24 @@ class SyncTsetmc:
         except csv.Error as e:
             return ValueError("load csv{}".format(e))
 
-    def add_share_id_to_unread_page_list(self, id_list):
+    def add_share_id_to_unread_page_list(self, id_list, tsetmc_ids):
         try:
             self.lock.acquire()
 
             for id in id_list:
-                if id in self.wait_list:
+                if id in self.completed_page:
                     continue
-                if id in self.complete_list:
+                if id in self.waiting_list:
                     continue
-                if id in self.running_list:
+                if id in self.unreade_page:
                     continue
-                if id in self.fail_list:
+                if id in self.running_page:
                     continue
-                self.wait_list.append(id)
+                if id in self.fail_readed_page:
+                    continue
+                if str(id) in tsetmc_ids:
+                    continue
+                self.waiting_list.append(id)
         except:
             self.lock.release()
             return True
